@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/nutanix/golang-socketio"
-	"github.com/nutanix/golang-socketio/transport"
-	"log"
+	"flag"
 	"runtime"
 	"time"
+
+	"github.com/golang/glog"
+	"github.com/nutanix/golang-socketio"
+	"github.com/nutanix/golang-socketio/transport"
 )
 
 type Channel struct {
@@ -19,44 +21,45 @@ type Message struct {
 }
 
 func sendJoin(c *gosocketio.Client) {
-	log.Println("Acking /join")
+	glog.Infoln("Acking /join")
 	result, err := c.Ack("/join", Channel{"main"}, time.Second*5)
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	} else {
-		log.Println("Ack result to /join: ", result)
+		glog.Infoln("Ack result to /join: ", result)
 	}
 }
 
 func main() {
+	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	c, err := gosocketio.Dial(
+	c, err := gosocketio.Dial2(
 		gosocketio.GetUrl("localhost", 3811, false),
 		transport.GetDefaultWebsocketTransport())
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
 	err = c.On("/message", func(h *gosocketio.Channel, args Message) {
-		log.Println("--- Got chat message: ", args)
+		glog.Infoln("--- Got chat message: ", args)
 	})
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
 	err = c.On(gosocketio.OnDisconnection, func(h *gosocketio.Channel) {
-		log.Fatal("Disconnected")
+		glog.Infoln("Disconnected")
 	})
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
 	err = c.On(gosocketio.OnConnection, func(h *gosocketio.Channel) {
-		log.Println("Connected")
+		glog.Infoln("Connected")
 	})
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
 	time.Sleep(1 * time.Second)
@@ -70,5 +73,5 @@ func main() {
 	time.Sleep(60 * time.Second)
 	c.Close()
 
-	log.Println(" [x] Complete")
+	glog.Infoln(" [x] Complete")
 }

@@ -1,8 +1,9 @@
 package gosocketio
 
 import (
-	"github.com/nutanix/golang-socketio/transport"
 	"strconv"
+
+	"github.com/nutanix/golang-socketio/transport"
 )
 
 const (
@@ -51,6 +52,7 @@ func Dial(url string, tr transport.Transport) (*Client, error) {
 		return nil, err
 	}
 
+	go workerLoop(&c.Channel, &c.methods)
 	go inLoop(&c.Channel, &c.methods)
 	go outLoop(&c.Channel, &c.methods)
 	go pinger(&c.Channel)

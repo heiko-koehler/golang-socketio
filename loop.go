@@ -42,6 +42,7 @@ ping is automatic
 type Channel struct {
 	conn transport.Connection
 
+	in     chan *protocol.Message
 	out    chan string
 	header Header
 
@@ -61,6 +62,7 @@ create channel, map, and set active
 */
 func (c *Channel) initChannel() {
 	//TODO: queueBufferSize from constant to server or client variable
+	c.in = make(chan *protocol.Message, queueBufferSize)
 	c.out = make(chan string, queueBufferSize)
 	c.ack.resultWaiters = make(map[int](chan string))
 	c.alive = true
@@ -98,6 +100,9 @@ func closeChannel(c *Channel, m *methods, args ...interface{}) error {
 	c.conn.Close()
 	c.alive = false
 
+	// close message in-channel
+	close(c.in)
+
 	//clean outloop
 	for len(c.out) > 0 {
 		<-c.out
@@ -115,6 +120,10 @@ func closeChannel(c *Channel, m *methods, args ...interface{}) error {
 
 //incoming messages loop, puts incoming messages to In channel
 func inLoop(c *Channel, m *methods) error {
+	glog.Infoln("Start in loop for channel", c)
+	defer func() {
+		glog.Infoln("Exit in loop for channel", c)
+	}()
 	for {
 		pkg, err := c.conn.GetMessage()
 		if err != nil {
@@ -128,7 +137,7 @@ func inLoop(c *Channel, m *methods) error {
 			return err
 		}
 
-		glog.V(5).Infof("Got message %+v", msg)
+		glog.V(3).Infof("Received message %q", msg.Method)
 		switch msg.Type {
 		case protocol.MessageTypeOpen:
 			if err := json.Unmarshal([]byte(msg.Source[1:]), &c.header); err != nil {
@@ -141,13 +150,32 @@ func inLoop(c *Channel, m *methods) error {
 		case protocol.MessageTypePong:
 		default:
 			if c.sequentialInLoop {
-				m.processIncomingMessage(c, msg)
+				glog.V(5).Infof("Process %q sequentially", msg.Method)
+				c.in <- msg
 			} else {
+				glog.V(5).Infof("Process %q asynchronously", msg.Method)
 				go m.processIncomingMessage(c, msg)
 			}
 		}
 	}
 	return nil
+}
+
+// worker for processing messages
+func workerLoop(c *Channel, m *methods) error {
+	glog.Infoln("Start worker loop for channel", c)
+	defer func() {
+		glog.Infoln("Exit worker loop for channel", c)
+	}()
+	for {
+		select {
+		case msg := <-c.in:
+			if msg == nil {
+				return nil
+			}
+			m.processIncomingMessage(c, msg)
+		}
+	}
 }
 
 var overflooded map[*Channel]struct{} = make(map[*Channel]struct{})
@@ -164,6 +192,10 @@ func AmountOfOverflooded() int64 {
 outgoing messages loop, sends messages from channel to socket
 */
 func outLoop(c *Channel, m *methods) error {
+	glog.Infoln("Start out loop for channel", c)
+	defer func() {
+		glog.Infoln("Exit out loop for channel", c)
+	}()
 	for {
 		outBufferLen := len(c.out)
 		if outBufferLen >= queueBufferSize-1 {

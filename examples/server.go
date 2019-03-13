@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/nutanix/golang-socketio"
-	"github.com/nutanix/golang-socketio/transport"
-	"log"
+	"flag"
 	"net/http"
 	"time"
+
+	"github.com/golang/glog"
+	"github.com/nutanix/golang-socketio"
+	"github.com/nutanix/golang-socketio/transport"
 )
 
 type Channel struct {
@@ -19,10 +21,11 @@ type Message struct {
 }
 
 func main() {
+	flag.Parse()
 	server := gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
 
 	server.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
-		log.Println("Connected")
+		glog.Infoln("Connected")
 
 		c.Emit("/message", Message{10, "main", "using emit"})
 
@@ -30,18 +33,18 @@ func main() {
 		c.BroadcastTo("test", "/message", Message{10, "main", "using broadcast"})
 	})
 	server.On(gosocketio.OnDisconnection, func(c *gosocketio.Channel) {
-		log.Println("Disconnected")
+		glog.Infoln("Disconnected")
 	})
 
 	server.On("/join", func(c *gosocketio.Channel, channel Channel) string {
 		time.Sleep(2 * time.Second)
-		log.Println("Client joined to ", channel.Channel)
+		glog.Infoln("Client joined to ", channel.Channel)
 		return "joined to " + channel.Channel
 	})
 
 	serveMux := http.NewServeMux()
 	serveMux.Handle("/socket.io/", server)
 
-	log.Println("Starting server...")
-	log.Panic(http.ListenAndServe(":3811", serveMux))
+	glog.Infoln("Starting server...")
+	glog.Fatal(http.ListenAndServe(":3811", serveMux))
 }

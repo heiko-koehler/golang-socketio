@@ -89,7 +89,7 @@ On emit - look for processing function
 */
 func (m *methods) processIncomingMessage(c *Channel, msg *protocol.Message) {
 	defer func() {
-		glog.Infof("Completed %s", msg.Method)
+		glog.Infof("Completed %q", msg.Method)
 	}()
 	switch msg.Type {
 	case protocol.MessageTypeEmit:
