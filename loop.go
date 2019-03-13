@@ -3,11 +3,13 @@ package gosocketio
 import (
 	"encoding/json"
 	"errors"
-	"github.com/nutanix/golang-socketio/protocol"
-	"github.com/nutanix/golang-socketio/transport"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/golang/glog"
+	"github.com/nutanix/golang-socketio/protocol"
+	"github.com/nutanix/golang-socketio/transport"
 )
 
 const (
@@ -48,9 +50,10 @@ type Channel struct {
 
 	ack ackProcessor
 
-	server        *Server
-	ip            string
-	requestHeader http.Header
+	server           *Server
+	ip               string
+	requestHeader    http.Header
+	sequentialInLoop bool
 }
 
 /**
@@ -115,17 +118,21 @@ func inLoop(c *Channel, m *methods) error {
 	for {
 		pkg, err := c.conn.GetMessage()
 		if err != nil {
+			glog.Errorf("Failed to get message: %s", err)
 			return closeChannel(c, m, err)
 		}
 		msg, err := protocol.Decode(pkg)
 		if err != nil {
+			glog.Errorf("Failed to decode message: %s", err)
 			closeChannel(c, m, protocol.ErrorWrongPacket)
 			return err
 		}
 
+		glog.V(5).Infof("Got message %+v", msg)
 		switch msg.Type {
 		case protocol.MessageTypeOpen:
 			if err := json.Unmarshal([]byte(msg.Source[1:]), &c.header); err != nil {
+				glog.Errorf("Failed to decode message source: %s", err)
 				closeChannel(c, m, ErrorWrongHeader)
 			}
 			m.callLoopEvent(c, OnConnection)
@@ -133,7 +140,11 @@ func inLoop(c *Channel, m *methods) error {
 			c.out <- protocol.PongMessage
 		case protocol.MessageTypePong:
 		default:
-			go m.processIncomingMessage(c, msg)
+			if c.sequentialInLoop {
+				m.processIncomingMessage(c, msg)
+			} else {
+				go m.processIncomingMessage(c, msg)
+			}
 		}
 	}
 	return nil
@@ -156,6 +167,7 @@ func outLoop(c *Channel, m *methods) error {
 	for {
 		outBufferLen := len(c.out)
 		if outBufferLen >= queueBufferSize-1 {
+			glog.Errorf("Output buffer to small")
 			return closeChannel(c, m, ErrorSocketOverflood)
 		} else if outBufferLen > int(queueBufferSize/2) {
 			overfloodedLock.Lock()
@@ -174,6 +186,7 @@ func outLoop(c *Channel, m *methods) error {
 
 		err := c.conn.WriteMessage(msg)
 		if err != nil {
+			glog.Errorf("Failed to write message: %s", err)
 			return closeChannel(c, m, err)
 		}
 	}

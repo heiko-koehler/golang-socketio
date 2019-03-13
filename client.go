@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	webSocketProtocol = "ws://"
+	webSocketProtocol       = "ws://"
 	webSocketSecureProtocol = "wss://"
-	socketioUrl       = "/socket.io/?EIO=3&transport=websocket"
+	socketioUrl             = "/socket.io/?EIO=3&transport=websocket"
 )
 
 /**
@@ -21,7 +21,7 @@ type Client struct {
 
 /**
 Get ws/wss url by host and port
- */
+*/
 func GetUrl(host string, port int, secure bool) string {
 	var prefix string
 	if secure {
@@ -56,6 +56,16 @@ func Dial(url string, tr transport.Transport) (*Client, error) {
 	go pinger(&c.Channel)
 
 	return c, nil
+}
+
+// Dial2 - Similar to Dial, but set sequentialInLoop to true in Channel
+// this will cause incoming message handling to be serialized.
+func Dial2(url string, tr transport.Transport) (*Client, error) {
+	c, err := Dial(url, tr)
+	if err == nil {
+		c.Channel.sequentialInLoop = true
+	}
+	return c, err
 }
 
 /**

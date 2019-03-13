@@ -2,9 +2,11 @@ package gosocketio
 
 import (
 	"encoding/json"
-	"github.com/nutanix/golang-socketio/protocol"
-	"sync"
 	"reflect"
+	"sync"
+
+	"github.com/golang/glog"
+	"github.com/nutanix/golang-socketio/protocol"
 )
 
 const (
@@ -86,6 +88,9 @@ On ack_req - look for processing function and send ack_resp
 On emit - look for processing function
 */
 func (m *methods) processIncomingMessage(c *Channel, msg *protocol.Message) {
+	defer func() {
+		glog.Infof("Completed %s", msg.Method)
+	}()
 	switch msg.Type {
 	case protocol.MessageTypeEmit:
 		f, ok := m.findMethod(msg.Method)

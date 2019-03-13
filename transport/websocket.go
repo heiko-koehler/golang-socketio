@@ -2,14 +2,15 @@ package transport
 
 import (
 	"errors"
-	"github.com/gorilla/websocket"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
-	upgradeFailed     = "Upgrade failed: "
+	upgradeFailed = "Upgrade failed: "
 
 	WsDefaultPingInterval   = 30 * time.Second
 	WsDefaultPingTimeout    = 60 * time.Second
@@ -93,7 +94,9 @@ type WebsocketTransport struct {
 }
 
 func (wst *WebsocketTransport) Connect(url string) (conn Connection, err error) {
-	dialer := websocket.Dialer{}
+	// Default Dailer reads proxy settings from the enviroment variable.
+	// FIX for ENG-180203
+	dialer := websocket.DefaultDialer
 	socket, _, err := dialer.Dial(url, wst.RequestHeader)
 	if err != nil {
 		return nil, err
