@@ -91,13 +91,12 @@ type WebsocketTransport struct {
 	BufferSize int
 
 	RequestHeader http.Header
+
+	Dialer *websocket.Dialer
 }
 
 func (wst *WebsocketTransport) Connect(url string) (conn Connection, err error) {
-	// Default Dailer reads proxy settings from the enviroment variable.
-	// FIX for ENG-180203
-	dialer := websocket.DefaultDialer
-	socket, _, err := dialer.Dial(url, wst.RequestHeader)
+	socket, _, err := wst.Dialer.Dial(url, wst.RequestHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -137,5 +136,6 @@ func GetDefaultWebsocketTransport() *WebsocketTransport {
 		ReceiveTimeout: WsDefaultReceiveTimeout,
 		SendTimeout:    WsDefaultSendTimeout,
 		BufferSize:     WsDefaultBufferSize,
+		Dialer:         websocket.DefaultDialer,
 	}
 }
