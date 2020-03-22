@@ -1,4 +1,4 @@
-module github.com/nutanix/golang-socketio
+module github.com/heiko-koehler/golang-socketio
 
 go 1.13
 
