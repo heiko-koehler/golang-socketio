@@ -3,7 +3,7 @@ package gosocketio
 import (
 	"strconv"
 
-	"github.com/nutanix/golang-socketio/transport"
+	"github.com/heiko-koehler/golang-socketio/transport"
 )
 
 const (

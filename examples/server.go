@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/nutanix/golang-socketio"
-	"github.com/nutanix/golang-socketio/transport"
+	"github.com/heiko-koehler/golang-socketio"
+	"github.com/heiko-koehler/golang-socketio/transport"
 )
 
 type Channel struct {

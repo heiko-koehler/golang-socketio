@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/nutanix/golang-socketio/protocol"
-	"github.com/nutanix/golang-socketio/transport"
+	"github.com/heiko-koehler/golang-socketio/protocol"
+	"github.com/heiko-koehler/golang-socketio/transport"
 )
 
 const (

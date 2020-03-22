@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
-	"github.com/nutanix/golang-socketio/protocol"
+	"github.com/heiko-koehler/golang-socketio/protocol"
 )
 
 const (
