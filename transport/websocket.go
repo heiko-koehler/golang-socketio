@@ -2,6 +2,7 @@ package transport
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -96,9 +97,9 @@ type WebsocketTransport struct {
 }
 
 func (wst *WebsocketTransport) Connect(url string) (conn Connection, err error) {
-	socket, _, err := wst.Dialer.Dial(url, wst.RequestHeader)
+	socket, resp, err := wst.Dialer.Dial(url, wst.RequestHeader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("WebSocket dial failure: resp=%v: %v", resp, err)
 	}
 
 	return &WebsocketConnection{socket, wst}, nil
